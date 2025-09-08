@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XEINHACK - Digital Game Keys</title>
+<style>
+body {
+  font-family: Roboto, sans-serif;
+  margin: 0;
+  background: linear-gradient(135deg, #e0f7fa, #fff3e0);
+  color: #111;
+}
+h1 { text-align:center; margin:10px 0; }
+.page-box {
+  background:#fff;
+  border:1px solid #ccc;
+  border-radius:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+  padding:20px;
+  margin:20px auto;
+  max-width:500px;
+}
+.products { display:flex; flex-direction:column; gap:15px; }
+.product-card {
+  border:1px solid #ccc; border-radius:10px; padding:15px;
+  box-shadow:0 2px 5px rgba(0,0,0,0.1); display:flex; justify-content:space-between; align-items:center;
+}
+.product-card button { padding:5px 10px; border:none; background:#ff3b30; color:#fff; border-radius:5px; cursor:pointer; }
+.note { background:#fff3b0; padding:10px; border-radius:5px; margin-bottom:15px; text-align:center; font-weight:bold; }
+.grid-container { display:grid; grid-template-columns:1fr; gap:15px; }
+.grid-item { background:#fff; border:1px solid #ccc; border-radius:10px; padding:15px; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
+.wallet-box { background:#ffe6cc; border:1px solid #ffcc99; border-radius:10px; padding:10px 15px; margin-bottom:15px; }
+.wallet-content { display:flex; justify-content:space-between; align-items:center; }
+#walletAddress { font-size:12px; word-break:break-all; margin:0; }
+.wallet-box button { padding:4px 8px; border:none; background:#ff3b30; color:#fff; border-radius:5px; cursor:pointer; }
+#recentPurchase {
+  position:fixed; bottom:10px; left:10px; background:#fff8c4;
+  border:1px solid #ccc; border-radius:8px; padding:8px 12px;
+  box-shadow:0 2px 5px rgba(0,0,0,0.2); font-size:14px; z-index:999; max-width:250px;
+}
+button { cursor:pointer; }
+#navLinks { display:none; flex-direction:column; gap:5px; margin:10px; }
+nav a { text-decoration:none; color:#111; font-weight:bold; }
+nav a:hover { color:#ff3b30; }
+</style>
+</head>
+<body>
+
+<h1>XEINHACK</h1>
+
+<nav>
+<button onclick="toggleNav()">☰ Menu</button>
+<div id="navLinks">
+  <a href="#" onclick="showPage('home')">Home</a>
+  <a href="#" onclick="showPage('track')">Track Order</a>
+  <a href="#" onclick="showPage('admin')">Admin Login</a>
+</div>
+</nav>
+
+<!-- Home Page -->
+<div id="home" class="page-box">
+  <div class="note">NOTE: Please remember to screenshot your crypto payments and receipt.</div>
+  <div class="products">
+    <div class="product-card">
+      <span>Delta Keys</span>
+      <button onclick="buyProduct('Delta Keys')">Buy Now</button>
+    </div>
+    <div class="product-card">
+      <span>PUBG Keys</span>
+      <button onclick="buyProduct('PUBG Keys')">Buy Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- Checkout Page -->
+<div id="checkout" class="page-box" style="display:none;">
+  <h2>Checkout</h2>
+  <div class="grid-container">
+    <div class="grid-item">
+      <p id="selected-product">You are buying: </p>
+      <input type="text" id="telegram" placeholder="Enter Telegram username">
+    </div>
+    <div class="grid-item" id="keyOptionsContainer">
+      <p>Select Key Duration:</p>
+      <div id="keyOptions"></div>
+      <p id="priceDisplay" style="font-weight:bold;color:#ff3b30;"></p>
+      <button onclick="proceedPayment()">Checkout</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Page -->
+<div id="payment" class="page-box" style="display:none;">
+  <h2>Payment Details</h2>
+  <div class="grid-container">
+    <div class="grid-item wallet-box">
+      <div class="wallet-content">
+        <p id="walletAddress">TEwKbkNdXqvNUG951nYTCRF6UjLGBn7pqc</p>
+        <button onclick="copyWallet()">Copy</button>
+      </div>
+      <p>Network: TRC-20</p>
+      <p id="paymentPrice">$5 USDT</p>
+    </div>
+    <div class="grid-item">
+      <button onclick="markPaid()">I've Paid</button>
+    </div>
+  </div>
+</div>
+
+<div id="recentPurchase"></div>
+
+<script>
+// Navigation
+function toggleNav() {
+  const nav = document.getElementById('navLinks');
+  nav.style.display = nav.style.display==='flex' ? 'none' : 'flex';
+}
+document.querySelectorAll('#navLinks a').forEach(link=>{
+  link.addEventListener('click',()=>{document.getElementById('navLinks').style.display='none';});
+});
+
+function showPage(page){
+  ['home','checkout','payment','receipt','adminPanel'].forEach(p=>{
+    if(document.getElementById(p)) document.getElementById(p).style.display='none';
+  });
+  if(document.getElementById(page)) document.getElementById(page).style.display='block';
+}
+
+// Fake recent purchase
+const fakeUsers = ['user123','player456','gamer789','proplayer','noobMaster'];
+const fakeProducts = ['Delta Keys','PUBG Keys'];
+setInterval(()=>{
+  const user = fakeUsers[Math.floor(Math.random()*fakeUsers.length)];
+  const product = fakeProducts[Math.floor(Math.random()*fakeProducts.length)];
+  document.getElementById('recentPurchase').innerText=`${user} bought ${product} a few minutes ago`;
+},7000);
+
+// Checkout logic
+let currentProduct='';
+let currentDuration='';
+let currentPrice=0;
+const prices = {
+  "Delta Keys":{"1 day":5,"3 day":8,"7 days":12,"14 days":17,"30 days":23},
+  "PUBG Keys":{"1 day":4,"3 day":7,"7 days":11,"30 days":22}
+};
+function buyProduct(product){
+  currentProduct = product;
+  showPage('checkout');
+  document.getElementById('selected-product').innerText = `You are buying: ${product}`;
+  const container = document.getElementById('keyOptions');
+  container.innerHTML='';
+  Object.entries(prices[product]).forEach(([dur,price])=>{
+    const btn = document.createElement('button');
+    btn.innerText = `🔑 ${dur} - $${price} USDT`;
+    btn.style.margin='5px';
+    btn.onclick=()=>{
+      currentDuration = dur;
+      currentPrice = price;
+      document.getElementById('priceDisplay').innerText=`Price: $${price} USDT`;
+      document.getElementById('paymentPrice').innerText=`$${price} USDT`;
+    };
+    container.appendChild(btn);
+  });
+}
+
+// Payment
+function copyWallet(){
+  const wallet = document.getElementById('walletAddress').innerText;
+  navigator.clipboard.writeText(wallet);
+  alert('Wallet copied!');
+}
+function proceedPayment(){ showPage('payment'); }
+function markPaid(){
+  const username=document.getElementById('telegram').value;
+  if(!username || !currentProduct || !currentDuration || !currentPrice){
+    alert("Please fill in all details first!");
+    return;
+  }
+  localStorage.setItem("latestOrder",JSON.stringify({
+    id:"ORD"+Math.floor(Math.random()*1000000),
+    product:currentProduct,
+    duration:currentDuration,
+    price:currentPrice,
+    telegram:username,
+    status:"Pending",
+    date:new Date().toLocaleString()
+  }));
+  showPage('receipt'); // will load in Part 2
+}
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XEINHACK - Receipt & Admin</title>
+<style>
+body { font-family:Roboto,sans-serif; margin:0; background:#f4f4f4; color:#111; }
+.page-box { background:#fff; border:1px solid #ccc; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); padding:20px; margin:20px auto; max-width:700px; }
+.admin-actions { display:flex; gap:5px; flex-wrap:wrap; }
+.admin-actions button { padding:4px 8px; font-size:12px; border:none; border-radius:5px; cursor:pointer; color:#fff; }
+.pending { background:#f0ad4e; }
+.delivered { background:#5cb85c; }
+.cancelled { background:#d9534f; }
+.delete { background:#777; }
+</style>
+</head>
+<body>
+
+<!-- Receipt Page -->
+<div id="receipt" class="page-box" style="display:none;">
+  <h2>Order Receipt</h2>
+  <div id="receiptBox"></div>
+</div>
+
+<!-- Admin Panel -->
+<div id="adminPanel" class="page-box" style="display:none;">
+  <h2>Admin Panel</h2>
+  <div id="adminStats"></div>
+  <table border="1" width="100%" cellspacing="0" cellpadding="5">
+    <thead>
+      <tr><th>Order ID</th><th>Product</th><th>Duration</th><th>Telegram</th><th>Price</th><th>Status</th><th>Date</th><th>Actions</th></tr>
+    </thead>
+    <tbody id="ordersTable"></tbody>
+  </table>
+</div>
+
+<script>
+// Load receipt
+const latestOrder = JSON.parse(localStorage.getItem("latestOrder"));
+if(latestOrder){
+  document.getElementById("receipt").style.display="block";
+  document.getElementById("receiptBox").innerHTML=`
+    <p><strong>Order ID:</strong> ${latestOrder.id}</p>
+    <p><strong>Product:</strong> ${latestOrder.product} - ${latestOrder.duration}</p>
+    <p><strong>Telegram:</strong> ${latestOrder.telegram}</p>
+    <p><strong>Price:</strong> $${latestOrder.price} USDT</p>
+    <p><strong>Status:</strong> ${latestOrder.status}</p>
+    <p><strong>Date:</strong> ${latestOrder.date}</p>
+    <div style="background:#fff3b0;padding:10px;border-radius:5px;margin-top:10px;">
+    NOTE: Send BOTH screenshots of crypto payment and receipt to <a href="https://t.me/cocomelonqueen" target="_blank">@cocomelonqueen</a> on Telegram.
+    </div>`;
+}
+
+// Admin
+let orders = JSON.parse(localStorage.getItem("orders")) || [];
+if(latestOrder){
+  orders.push(latestOrder);
+  localStorage.setItem("orders",JSON.stringify(orders));
+}
+
+function renderAdmin(){
+  document.getElementById("adminPanel").style.display="block";
+  const table = document.getElementById("ordersTable");
+  table.innerHTML="";
+  let delivered=0,pending=0,cancelled=0,profit=0;
+  orders.forEach((o,idx)=>{
+    if(o.status==="Delivered") delivered++;
+    if(o.status==="Pending") pending++;
+    if(o.status==="Cancelled") cancelled++;
+    // Profit mapping
+    const profits = {
+      "Delta Keys":{"1 day":2,"3 day":3,"7 days":3,"14 days":4,"30 days":5},
+      "PUBG Keys":{"1 day":2,"3 day":3,"7 days":4,"30 days":7}
+    };
+    if(o.status==="Delivered") profit+=profits[o.product][o.duration];
+    const row=document.createElement("tr");
+    row.innerHTML=`
+      <td>${o.id}</td><td>${o.product}</td><td>${o.duration}</td>
+      <td>${o.telegram}</td><td>$${o.price}</td><td>${o.status}</td><td>${o.date}</td>
+      <td>
+        <div class="admin-actions">
+          <button class="pending" onclick="changeStatus(${idx},'Pending')">Pending</button>
+          <button class="delivered" onclick="changeStatus(${idx},'Delivered')">Delivered</button>
+          <button class="cancelled" onclick="changeStatus(${idx},'Cancelled')">Cancelled</button>
+          <button class="delete" onclick="deleteOrder(${idx})">Delete</button>
+        </div>
+      </td>`;
+    table.appendChild(row);
+  });
+  document.getElementById("adminStats").innerHTML=`
+    <p>Total Orders: ${orders.length} | Pending: ${pending} | Delivered: ${delivered} | Cancelled: ${cancelled} | Profit: $${profit}</p>`;
+}
+
+function changeStatus(i,status){ orders[i].status=status; localStorage.setItem("orders",JSON.stringify(orders)); renderAdmin(); }
+function deleteOrder(i){ orders.splice(i,1); localStorage.setItem("orders",JSON.stringify(orders)); renderAdmin(); }
+
+renderAdmin();
+</script>
+</body>
+</html>
